@@ -44,7 +44,7 @@ export const fetchEventById = async (id: number): Promise<Event> => {
 };
 
 // Use a type that includes only the IDs for timeSlot, track, and discipline
-type EventCreatePayload = {
+export type EventCreatePayload = {
   minimumDuration: string;
   maximumParticipants: number;
   participantGender: string;
@@ -62,7 +62,7 @@ export const createEvent = async (event: EventCreatePayload): Promise<Event> => 
 };
 
 // Update an existing event
-export const updateEvent = async (id: number, event: Partial<Event>): Promise<Event> => {
+export const updateEvent = async (id: number, event: EventCreatePayload): Promise<Event> => {
   const response = await axios.put<Event>(`${API_URL}/${id}`, event);
   console.log(response.data);
   return response.data;
