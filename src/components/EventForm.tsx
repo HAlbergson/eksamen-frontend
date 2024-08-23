@@ -1,38 +1,29 @@
-import React, { Component } from "react";
-import { createEvent, updateEvent, fetchEventById } from "../services/EventService"; 
-import { EventCreatePayload, Event } from "../services/EventService"; 
+import React, { useState, useEffect } from "react";
+import { createEvent, updateEvent, fetchEventById } from "../services/EventService"; // Adjust the import path accordingly
+import { EventCreatePayload, Event } from "../services/EventService"; // Adjust the import path accordingly
+import axios from "axios";
 
 interface EventFormProps {
-  eventId?: number;
-  onSave: (event: Event) => void;
+  eventId?: number; // Optional if you're creating a new event
+  onSave: (event: Event) => void; // Callback to notify parent component
 }
 
-interface EventFormState {
-  formData: EventCreatePayload;
-}
+const EventForm: React.FC<EventFormProps> = ({ eventId, onSave }) => {
+  const [formData, setFormData] = useState<EventCreatePayload>({
+    minimumDuration: "",
+    maximumParticipants: 0,
+    participantGender: "",
+    participantAgeGroup: "",
+    timeSlot: { id: 0 },
+    track: { id: 0 },
+    discipline: { id: 0 },
+  });
 
-class EventForm extends Component<EventFormProps, EventFormState> {
-  constructor(props: EventFormProps) {
-    super(props);
-    this.state = {
-      formData: {
-        minimumDuration: "",
-        maximumParticipants: 0,
-        participantGender: "",
-        participantAgeGroup: "",
-        timeSlot: { id: 0 },
-        track: { id: 0 },
-        discipline: { id: 0 },
-      },
-    };
-  }
-
-  componentDidMount() {
-    const { eventId } = this.props;
+  useEffect(() => {
     if (eventId) {
-      fetchEventById(eventId).then((event) => {
-        this.setState({
-          formData: {
+      fetchEventById(eventId)
+        .then((event) => {
+          setFormData({
             minimumDuration: event.minimumDuration,
             maximumParticipants: event.maximumParticipants,
             participantGender: event.participantGender,
@@ -40,88 +31,82 @@ class EventForm extends Component<EventFormProps, EventFormState> {
             timeSlot: { id: event.timeSlot.id },
             track: { id: event.track.id },
             discipline: { id: event.discipline.id },
-          },
-        });
-      });
+          });
+        })
+        .catch((error) => console.error("Error fetching event:", error));
     }
-  }
+  }, [eventId]);
 
-  handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    this.setState((prevState) => ({
-      formData: {
-        ...prevState.formData,
-        [name]: value,
-      },
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
-  handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof EventCreatePayload) => {
-    const { value } = e.target;
-    this.setState((prevState) => ({
-      formData: {
-        ...prevState.formData,
-        [field]: { id: Number(value) } as any,
-      },
-    }));
-  };
-
-  handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { eventId, onSave } = this.props;
-    const { formData } = this.state;
-
     try {
       let savedEvent;
+      const payload: EventCreatePayload = {
+        minimumDuration: formData.minimumDuration,
+        maximumParticipants: formData.maximumParticipants,
+        participantGender: formData.participantGender,
+        participantAgeGroup: formData.participantAgeGroup,
+        timeSlot: { id: formData.timeSlot.id },
+        track: { id: formData.track.id },
+        discipline: { id: formData.discipline.id },
+      };
+
       if (eventId) {
-        savedEvent = await updateEvent(eventId, formData);
+        savedEvent = await updateEvent(eventId, payload);
       } else {
-        savedEvent = await createEvent(formData);
+        savedEvent = await createEvent(payload);
       }
+
       onSave(savedEvent);
     } catch (error) {
-      console.error("Error saving event:", error);
+      if (axios.isAxiosError(error)) {
+      } else {
+        console.error("Unexpected error:", error);
+      }
     }
   };
 
-  render() {
-    const { eventId } = this.props;
-    const { formData } = this.state;
-
-    return (
-      <form onSubmit={this.handleSubmit}>
-        <div>
-          <label>Minimum Duration:</label>
-          <input type="text" name="minimumDuration" value={formData.minimumDuration} onChange={this.handleChange} required />
-        </div>
-        <div>
-          <label>Maximum Participants:</label>
-          <input type="number" name="maximumParticipants" value={formData.maximumParticipants} onChange={this.handleChange} required />
-        </div>
-        <div>
-          <label>Participant Gender:</label>
-          <input type="text" name="participantGender" value={formData.participantGender} onChange={this.handleChange} required />
-        </div>
-        <div>
-          <label>Participant Age Group:</label>
-          <input type="text" name="participantAgeGroup" value={formData.participantAgeGroup} onChange={this.handleChange} required />
-        </div>
-        <div>
-          <label>Time Slot ID:</label>
-          <input type="number" name="timeSlot" value={formData.timeSlot.id} onChange={(e) => this.handleNumberChange(e, "timeSlot")} required />
-        </div>
-        <div>
-          <label>Track ID:</label>
-          <input type="number" name="track" value={formData.track.id} onChange={(e) => this.handleNumberChange(e, "track")} required />
-        </div>
-        <div>
-          <label>Discipline ID:</label>
-          <input type="number" name="discipline" value={formData.discipline.id} onChange={(e) => this.handleNumberChange(e, "discipline")} required />
-        </div>
-        <button type="submit">{eventId ? "Update Event" : "Create Event"}</button>
-      </form>
-    );
-  }
-}
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label>Minimum Duration:</label>
+        <input type="text" name="minimumDuration" value={formData.minimumDuration} onChange={handleChange} placeholder="e.g., PT30M" required />
+      </div>
+      <div>
+        <label>Maximum Participants:</label>
+        <input type="number" name="maximumParticipants" value={formData.maximumParticipants} onChange={handleChange} required />
+      </div>
+      <div>
+        <label>Participant Gender:</label>
+        <input type="text" name="participantGender" value={formData.participantGender} onChange={handleChange} required />
+      </div>
+      <div>
+        <label>Participant Age Group:</label>
+        <input type="text" name="participantAgeGroup" value={formData.participantAgeGroup} onChange={handleChange} required />
+      </div>
+      <div>
+        <label>Time Slot ID:</label>
+        <input type="number" name="timeSlot" value={formData.timeSlot.id} onChange={(e) => setFormData({ ...formData, timeSlot: { id: Number(e.target.value) } })} required />
+      </div>
+      <div>
+        <label>Track ID:</label>
+        <input type="number" name="track" value={formData.track.id} onChange={(e) => setFormData({ ...formData, track: { id: Number(e.target.value) } })} required />
+      </div>
+      <div>
+        <label>Discipline ID:</label>
+        <input type="number" name="discipline" value={formData.discipline.id} onChange={(e) => setFormData({ ...formData, discipline: { id: Number(e.target.value) } })} required />
+      </div>
+      <button type="submit">{eventId ? "Update Event" : "Create Event"}</button>
+    </form>
+  );
+};
 
 export default EventForm;

@@ -54,18 +54,23 @@ export type EventCreatePayload = {
   discipline: { id: number };
 };
 
-// Create a new event
-export const createEvent = async (event: EventCreatePayload): Promise<Event> => {
-  const response = await axios.post<Event>(API_URL, event);
-  console.log(response.data);
-  return response.data;
+
+export const createEvent = async (eventData: EventCreatePayload) => {
+  try {
+    const response = await axios.post(API_URL, eventData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
-// Update an existing event
-export const updateEvent = async (id: number, event: EventCreatePayload): Promise<Event> => {
-  const response = await axios.put<Event>(`${API_URL}/${id}`, event);
-  console.log(response.data);
-  return response.data;
+export const updateEvent = async (eventId: number, eventData: EventCreatePayload) => {
+  try {
+    const response = await axios.put(`${API_URL}/${eventId}`, eventData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
 // Delete an event by ID
